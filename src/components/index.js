@@ -58,6 +58,7 @@ export default function SortingVisualizer() {
   const [currentIndices, setCurrentIndices] = useState([]);
   const [timeTaken, setTimeTaken] = useState(null);
   const [compareResult, setCompareResult] = useState(null);
+  const [isComparing, setIsComparing] = useState(false);
 
   const generateArray = () => {
     if (isSorting) return;
@@ -104,17 +105,18 @@ export default function SortingVisualizer() {
   };
 
   const compareAlgorithms = () => {
-    if (isSorting) return;
+    if (isSorting || isComparing) return;
+    setIsComparing(true);
 
     const tempArray1 = [...array];
     const tempArray2 = [...array];
 
     const startTime1 = performance.now();
-    compareAlgorithm1.func(tempArray1);
+    const anims1 = compareAlgorithm1.func(tempArray1);
     const endTime1 = performance.now();
 
     const startTime2 = performance.now();
-    compareAlgorithm2.func(tempArray2);
+    const anims2 = compareAlgorithm2.func(tempArray2);
     const endTime2 = performance.now();
 
     setCompareResult({
@@ -131,6 +133,37 @@ export default function SortingVisualizer() {
         spaceComplexity: compareAlgorithm2.spaceComplexity,
       },
     });
+
+    anims1.forEach(([i, j, isSwap], index) => {
+      setTimeout(() => {
+        setCurrentIndices([i, j]);
+        if (isSwap) {
+          setArray((prevArray) => {
+            const newArray = [...prevArray];
+            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            return newArray;
+          });
+        }
+      }, index * 300);
+    });
+
+    anims2.forEach(([i, j, isSwap], index) => {
+      setTimeout(() => {
+        setCurrentIndices([i, j]);
+        if (isSwap) {
+          setArray((prevArray) => {
+            const newArray = [...prevArray];
+            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            return newArray;
+          });
+        }
+      }, (anims1.length + index) * 300);
+    });
+
+    setTimeout(() => {
+      setIsComparing(false);
+      setCurrentIndices([]);
+    }, (anims1.length + anims2.length) * 300);
   };
 
   useEffect(() => {
@@ -163,7 +196,8 @@ export default function SortingVisualizer() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header with Compare Functionality */}
-        <div className="p-4 bg-gray-200 flex justify-between items-center">
+
+        {/* <div className="p-4 bg-gray-200 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">Sorting Visualizer</h1>
           </div>
@@ -200,12 +234,13 @@ export default function SortingVisualizer() {
             </select>
             <button
               onClick={compareAlgorithms}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              className={`bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 ${isComparing ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={isComparing}
             >
               Compare
             </button>
           </div>
-        </div>
+        </div> */}
 
         {/* Comparison Results */}
         {compareResult && (
@@ -231,7 +266,7 @@ export default function SortingVisualizer() {
         {/* Sorting Visualizer */}
         <div className="flex-1 p-6">
           <h2 className="text-2xl font-bold mb-4">{selectedAlgorithm.name}</h2>
-          <div className="flex justify-center items-end h-64 gap-1 bg-white shadow rounded p-4">
+          <div className="flex justify-center items-end h-auto gap-1 bg-white shadow rounded p-4">
             {array.map((value, index) => (
               <div
                 key={index}
@@ -244,19 +279,56 @@ export default function SortingVisualizer() {
           </div>
         </div>
 
+        {/* Visualization for Comparison */}
+        {isComparing ? (
+          <div className="flex-1 p-6">
+            <h2 className="text-2xl font-bold mb-4">Comparison Visualization</h2>
+            <div className="flex flex-col gap-4">
+              <div>
+                <h3 className="font-bold">{compareAlgorithm1.name} Visualization</h3>
+                <div className="flex justify-center items-end h-auto gap-1 bg-white shadow rounded p-4">
+                  {array.map((value, index) => (
+                    <div
+                      key={index}
+                      className={`w-6 transition-all duration-300 ${currentIndices.includes(index) ? "bg-red-500" : "bg-blue-500"}`}
+                      style={{ height: `${value}px` }}
+                    ></div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3 className="font-bold">{compareAlgorithm2.name} Visualization</h3>
+                <div className="flex justify-center items-end h-auto gap-1 bg-white shadow rounded p-4">
+                  {array.map((value, index) => (
+                    <div
+                      key={index}
+                      className={`w-6 transition-all duration-300 ${currentIndices.includes(index) ? "bg-red-500" : "bg-blue-500"}`}
+                      style={{ height: `${value}px` }}
+                    ></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 p-6">
+            <h2 className="text-2xl font-bold mb-4">No Comparison in Progress</h2>
+          </div>
+        )}
+
         {/* Footer Controls */}
         <div className="p-4 bg-gray-200 flex justify-between">
           <button
             onClick={generateArray}
-            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-            disabled={isSorting}
+            className={`bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 ${isComparing ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={isComparing}
           >
             Generate New Array
           </button>
           <button
             onClick={startSorting}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            disabled={isSorting}
+            className={`bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 ${isComparing ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={isComparing}
           >
             Start Sorting
           </button>
